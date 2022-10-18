@@ -24,65 +24,93 @@ class InfluxClient:
         write_api = self._client.write_api(write_option)
         write_api.write(self._bucket, self._org , data,write_precision='s')
 
+    # Reading Data
+    def query_data(self, query):
+        query_api = self._client.query_api()
+        result = query_api.query(org=self._org, query=query)
+        results = []
+        for table in result:
+            for record in table.records:
+                results.append((record.get_measurement(), record.get_value(), record.get_field()))
+        print(results)
+        return results
+
+
 
 IC = InfluxClient(token, org, bucket)
 
 # Data Write Method 1
-IC.write_data(["MSFT_2021-11-07_Line_Protocol,stock=MSFT Open=62.79,High=63.84,Low=62.13"])
+# IC.write_data(["MSFT_2021-11-07_Line_Protocol,stock=MSFT Open=62.79,High=63.84,Low=62.13"])
 
 # Data Write Method 2
-IC.write_data(
-    [
-        Point('MSFT_2021-11-07_Point_Class')
-        .tag("stock","MSFT")
-        .field("Open",65)
-        .field("High",63.38)
-        .field("Low",62.13)
-        .time(int(datetime.strptime('2021-11-07','%Y-%m-%d').timestamp()))
-    ],
-    )
-
+# IC.write_data(
+#     [
+#         Point('MSFT_2021-11-07_Point_Class')
+#         .tag("stock","MSFT")
+#         .field("Open",65)
+#         .field("High",63.38)
+#         .field("Low",62.13)
+#         .time(int(datetime.strptime('2021-11-07','%Y-%m-%d').timestamp()))
+#     ],
+#     )
+# 
 # Data Write Method 3
-IC.write_data([
-    {
-        "measurement": "MSFT_2021-11-07_Dictionary_Method", 
-        "tags": {"stock": "MSFT"}, 
-        "fields": {
-                "Open": 66,
-                "High": 63.38,
-                "Low": 62.13,
-                }, 
-        "time": int(datetime.strptime('2021-11-07','%Y-%m-%d').timestamp())
-    },
-    {
-        "measurement": "MSFT_DATE", 
-        "tags": {"stock": "MSFT"}, 
-        "fields": {
-                "Open": 67,
-                "High": 63.38,
-                "Low": 62.13,
-                }, 
-    }
-],write_option=ASYNCHRONOUS)
+# IC.write_data([
+#     {
+#         "measurement": "MSFT_2021-11-07_Dictionary_Method", 
+#         "tags": {"stock": "MSFT"}, 
+#         "fields": {
+#                 "Open": 66,
+#                 "High": 63.38,
+#                 "Low": 62.13,
+#                 }, 
+#         "time": int(datetime.strptime('2021-11-07','%Y-%m-%d').timestamp())
+#     },
+#     {
+#         "measurement": "MSFT_DATE", 
+#         "tags": {"stock": "MSFT"}, 
+#         "fields": {
+#                 "Open": 67,
+#                 "High": 63.38,
+#                 "Low": 62.13,
+#                 }, 
+#     }
+# ],write_option=ASYNCHRONOUS)
 
 
 ###### Insert ALL DATA for MSFT stock
 import csv
-MSFT_file = open('./msftdata.csv')
-csvreader = csv.reader(MSFT_file)
-header = next(csvreader)
-rows = []
-for row in csvreader:
+
+def insert_all_data_from_msft_csv():
+    MSFT_file = open('./msftdata.csv')
+    csvreader = csv.reader(MSFT_file)
+    header = next(csvreader)
+    rows = []
+    for row in csvreader:
         date,open,high,low = row[0],row[1],row[2],row[3]
         date = date[:10]
         line_protocol_string = ''
         line_protocol_string+=f'MSFT_{date},'
         line_protocol_string+=f'stock=MSFT '
         line_protocol_string+=f'Open={open},High={high},Low={low} '
-
+    
         strped_time = datetime.strptime(date, '%Y-%m-%d')
         line_protocol_string+=str(int(strped_time.timestamp()))
         print(line_protocol_string)
         rows.append(line_protocol_string)
+    IC.write_data(rows)
 
-IC.write_data(rows)
+# insert_all_data_from_msft_csv()
+
+## READ DATA
+print("Querying data")
+
+'''
+    Return the High Value for MSFT stock for since 1st October,2021
+'''
+query1 = 'from(bucket: "{bucket_name}")\
+|> range(start: 1633124983)\
+|> filter(fn: (r) => r._field == "High")\
+|> filter(fn: (r) => r.stock == "MSFT")'.format(bucket_name=bucket)
+IC.query_data(query1)
+
