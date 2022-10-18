@@ -1,0 +1,12 @@
+from datetime import datetime
+
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+# You can generate an API token from the "API Tokens Tab" in the UI
+token = "qCDIGmO8MGMT3U-z_cF3AU4uzJIZgV82ztn5EY8VfXH2QxLYJIUx1JWu3btOLY1gR5wgmgPoSZXR-IUCG5T5oA=="
+org = "Tutsorg"
+bucket = "yahoofinancebucket"
+
+# with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
+client = InfluxDBClient(url="http://localhost:8086", token=token, org=org)
